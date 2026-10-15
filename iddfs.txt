@@ -1,0 +1,109 @@
+Here is the copy-pasteable code with different variable and function names, keeping BFS, DFS, IDDFS, and execution-time measurement.
+
+python
+```
+from collections import deque
+import time
+
+# Get input array and target value
+numbers = list(map(int, input("Enter array: ").split()))
+search_value = int(input("Enter target: "))
+
+if not numbers:
+    print("Array cannot be empty.")
+    raise SystemExit
+
+# Build binary tree
+tree = {value: [] for value in numbers}
+
+for index in range(len(numbers)):
+    left_child = 2 * index + 1
+    right_child = 2 * index + 2
+
+    if left_child < len(numbers):
+        tree[numbers[index]].append(numbers[left_child])
+
+    if right_child < len(numbers):
+        tree[numbers[index]].append(numbers[right_child])
+
+start_node = numbers[0]
+
+# Breadth-First Search
+def breadth_first_search():
+    pending = deque([start_node])
+    explored = {start_node}
+
+    while pending:
+        current = pending.popleft()
+
+        if current == search_value:
+            return True
+
+        for child in tree[current]:
+            if child not in explored:
+                explored.add(child)
+                pending.append(child)
+
+    return False
+
+# Depth-First Search
+def depth_first_search():
+    explored = set()
+
+    def visit(current):
+        if current == search_value:
+            return True
+
+        explored.add(current)
+
+        for child in tree[current]:
+            if child not in explored:
+                if visit(child):
+                    return True
+
+        return False
+
+    return visit(start_node)
+
+# Iterative Deepening Depth-First Search
+def iterative_deepening_search():
+    def limited_search(current, remaining_depth):
+        if current == search_value:
+            return True
+
+        if remaining_depth == 0:
+            return False
+
+        for child in tree[current]:
+            if limited_search(child, remaining_depth - 1):
+                return True
+
+        return False
+
+    for limit in range(len(numbers)):
+        if limited_search(start_node, limit):
+            return True
+
+    return False
+
+# Execute searches and calculate running time
+print("\n--- SEARCH RESULTS ---")
+
+algorithms = [
+    ("BFS", breadth_first_search),
+    ("DFS", depth_first_search),
+    ("IDDFS", iterative_deepening_search)
+]
+
+for algorithm_name, search_function in algorithms:
+    begin_time = time.perf_counter()
+    found = search_function()
+    finish_time = time.perf_counter()
+
+    duration = finish_time - begin_time
+
+    print(f"{algorithm_name}: {'FOUND' if found else 'NOT FOUND'}")
+    print(f"Time taken: {duration:.8f} seconds\n")
+```
+
+Note: This code assumes the input represents a binary tree in array order, where the children of index `i` are at `2*i + 1` and `2*i + 2`. It works best when the array contains unique values, because the tree uses values as dictionary keys.

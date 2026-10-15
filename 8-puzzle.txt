@@ -1,0 +1,177 @@
+python
+```
+import heapq
+
+def display_board(board):
+    for idx in range(0, 9, 3):
+        print("+---+---+---+")
+        print("|", end="")
+        for cell in board[idx:idx + 3]:
+            print(f" {cell if cell != 0 else ' '} |", end="")
+        print()
+    print("+---+---+---+")
+
+def calculate_heuristic(board, target):
+    return sum(
+        board[pos] != 0 and board[pos] != target[pos]
+        for pos in range(9)
+    )
+
+def get_neighbors(board):
+    blank_index = board.index(0)
+    current_row, current_col = divmod(blank_index, 3)
+    next_states = []
+
+    directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+
+    for row_change, col_change in directions:
+        new_row = current_row + row_change
+        new_col = current_col + col_change
+
+        if 0 <= new_row < 3 and 0 <= new_col < 3:
+            swap_index = new_row * 3 + new_col
+            updated_board = list(board)
+
+            updated_board[blank_index], updated_board[swap_index] = (
+                updated_board[swap_index],
+                updated_board[blank_index]
+            )
+
+            next_states.append(tuple(updated_board))
+
+    return next_states
+
+def is_solvable(initial, target):
+    goal_positions = {
+        tile: index
+        for index, tile in enumerate(target)
+        if tile != 0
+    }
+
+    sequence = [
+        goal_positions[tile]
+        for tile in initial
+        if tile != 0
+    ]
+
+    inversion_count = sum(
+        sequence[a] > sequence[b]
+        for a in range(8)
+        for b in range(a + 1, 8)
+    )
+
+    return inversion_count % 2 == 0
+
+def find_solution(initial, target, algorithm):
+    priority_queue = [
+        (calculate_heuristic(initial, target), 0, initial)
+    ]
+
+    previous_state = {initial: None}
+    path_cost = {initial: 0}
+    explored = set()
+    sequence_number = 0
+
+    while priority_queue:
+        _, _, current_board = heapq.heappop(priority_queue)
+
+        if current_board in explored:
+            continue
+
+        explored.add(current_board)
+
+        if current_board == target:
+            solution_path = []
+
+            while current_board is not None:
+                solution_path.append(current_board)
+                current_board = previous_state[current_board]
+
+            return solution_path[::-1]
+
+        for next_board in get_neighbors(current_board):
+            move_count = path_cost[current_board] + 1
+
+            if (
+                next_board not in path_cost
+                or move_count < path_cost[next_board]
+            ):
+                path_cost[next_board] = move_count
+                previous_state[next_board] = current_board
+                sequence_number += 1
+
+                heuristic_value = calculate_heuristic(
+                    next_board, target
+                )
+
+                if algorithm == 1:
+                    priority_value = heuristic_value
+                else:
+                    priority_value = move_count + heuristic_value
+
+                heapq.heappush(
+                    priority_queue,
+                    (priority_value, sequence_number, next_board)
+                )
+
+    return None
+
+def read_board(label):
+    print(f"\nEnter {label} state (0 = blank):")
+    board_values = []
+
+    for row_num in range(3):
+        row_values = list(
+            map(int, input(f"Row {row_num + 1}: ").split())
+        )
+
+        if len(row_values) != 3:
+            raise ValueError("Each row must contain 3 numbers.")
+
+        board_values.extend(row_values)
+
+    if len(board_values) != 9 or set(board_values) != set(range(9)):
+        raise ValueError("Use numbers 0 to 8 exactly once.")
+
+    return tuple(board_values)
+
+try:
+    initial_board = read_board("INITIAL")
+    target_board = read_board("GOAL")
+
+    print("\nSelect search algorithm:")
+    print("1. Misplaced Tile Heuristic")
+    print("2. A* Search")
+
+    selected_algorithm = int(input("Enter choice: "))
+
+    if selected_algorithm not in (1, 2):
+        raise ValueError("Choose 1 or 2.")
+
+    if not is_solvable(initial_board, target_board):
+        print("Goal is unreachable from the initial state.")
+    else:
+        result_path = find_solution(
+            initial_board,
+            target_board,
+            selected_algorithm
+        )
+
+        if result_path:
+            print("\nSolution found!")
+            print("Total moves:", len(result_path) - 1)
+
+            for step_number, board_state in enumerate(result_path):
+                print(f"\nStep {step_number}:")
+                display_board(board_state)
+
+                print(
+                    "Misplaced tiles:",
+                    calculate_heuristic(board_state, target_board)
+                )
+        else:
+            print("No solution found.")
+
+except ValueError as error:
+    print("Invalid input:", error)
+```
